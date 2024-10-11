@@ -22,6 +22,8 @@ from interco.interleaver import Interleaver
 from pulp.snitch.snitch_cluster.dma_interleaver import DmaInterleaver
 import math
 
+import pulp.snitch.hwpe_interleaver import HWPEInterleaver
+
 
 class L1_subsystem(gvsoc.systree.Component):
     """
@@ -98,6 +100,9 @@ class L1_subsystem(gvsoc.systree.Component):
         dma_interleaver = DmaInterleaver(self, 'dma_interleaver', nb_master_ports=l1_interleaver_nb_masters, 
                                          nb_banks=nb_l1_banks, bank_width=bandwidth)
 
+        # HWPE Router and Interleaver
+        hwpe_router = Router(self, 'hwpe_router')
+        hwpe_interleaver = HWPEInterleaver(self, 'hwpe_interleaver', nb_master_ports=1, nb_banks=nb_l1_banks, bank_width=bandwidth)
 
         #
         # Bindings
@@ -151,6 +156,19 @@ class L1_subsystem(gvsoc.systree.Component):
         for i in range(0, nb_l1_banks):
             self.bind(interleaver, 'out_%d' % i, l1_banks[i], 'input')
             self.bind(dma_interleaver, 'out_%d' % i, l1_banks[i], 'input')
+
+        # l1 port 'redmule' -> hwpe router 'router' 
+        self.bind( self, 'redmule_in', hwpe_router, 'input' )
+
+        # route to tcdm
+        hwpe_router.add_mapping( 'redmule_tcdm', base=0x10000000, remove_offset=0x10000000, size=0x20000 )
+
+        # hwpe router port 'hwpe_router' -> hwpe interleaver 
+        self.bind( hwpe_router, 'redmule_tcdm', hwpe_interleaver, 'input' )
+
+        # bind interlever outputs out_i -> li_banks[i] for i in range 0, nb_l1_banks
+        for i in range(0, nb_l1_banks):
+            self.bind(hwpe_interleaver, 'out_%d' % i, l1_banks[i], 'input')
             
     
     def i_DMA_INPUT(self) -> gvsoc.systree.SlaveItf:

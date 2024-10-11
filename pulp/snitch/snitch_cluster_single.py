@@ -35,6 +35,8 @@ import gvsoc.runner as gvsoc
 
 import math
 
+from pulp.snitch.light_redmule import LightRedmule
+
 
 class Soc(st.Component):
 
@@ -61,6 +63,22 @@ class Soc(st.Component):
         if parser is not None:
             [args, otherArgs] = parser.parse_known_args()
             binary = args.binary
+
+        # Redmule
+        has_redmule = True
+        if has_redmule:
+            nb_banks_per_superbank = 8
+            nb_superbanks = 4
+            nb_l1_banks = nb_banks_per_superbank * nb_superbanks
+
+            redmule = LightRedmule( self, 'redmule',
+                        redmule_id          = 0,
+                        tcdm_bank_width     = 4,
+                        tcdm_bank_number    = nb_l1_banks,
+                        elem_size           = 2,
+                        ce_height           = 16,
+                        ce_width            = 4,
+                        ce_pipe             = 3     )
 
         # Memory Components
         # rom = memory.Memory(self, 'rom', size=0x10000, width_log2=3, stim_file=self.get_file_path('pulp/chips/spatz/rom.bin'))
@@ -121,6 +139,16 @@ class Soc(st.Component):
         # dma_ico.add_mapping('l1', base=0x10000000, remove_offset=0x10000000, size=0x20000)
         
         self.bind(icache, 'refill', dma_ico, 'input')
+
+        if has_redmule:
+            # adding redmule to the interconnect address map
+            ico.add_mapping( 'redmule', base=0x10040000, remove_offset=0x10040000, size=0x00000400  )
+
+            # ico port 'redmule' -> redmule input port 'input'
+            self.bind( ico, 'redmule', redmule, 'input' )
+
+            # redmule tcdm port 'tcdm' -> l1 port 'redmule_in'
+            self.bind( redmule, 'tcdm', l1, 'redmule_in' )
 
 
         # RISCV bus watchpoint
