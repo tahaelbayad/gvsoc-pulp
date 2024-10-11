@@ -734,37 +734,38 @@ vp::IoReqStatus LightRedmule::req(vp::Block *__this, vp::IoReq *req)
         uint32_t value = *(uint32_t *)data;
 
         switch (offset) {
-            case 0:
-                _this->m_size = value;
-                _this->trace.msg("[LightRedmule] Set M size 0x%x)\n", value);
-                break;
-            case 4:
-                _this->n_size = value;
-                _this->trace.msg("[LightRedmule] Set N size 0x%x)\n", value);
-                break;
-            case 8:
-                _this->k_size = value;
-                _this->trace.msg("[LightRedmule] Set K size 0x%x)\n", value);
-                break;
-            case 12:
+
+            case 64:
                 _this->x_addr = value;
                 _this->trace.msg("[LightRedmule] Set X addr 0x%x)\n", value);
                 break;
-            case 16:
-                _this->y_addr = value;
-                _this->trace.msg("[LightRedmule] Set Y addr 0x%x)\n", value);
-                break;
-            case 20:
-                _this->z_addr = value;
-                _this->trace.msg("[LightRedmule] Set Z addr 0x%x)\n", value);
-                break;
-            case 24:
+
+            case 68:
                 _this->w_addr = value;
                 _this->trace.msg("[LightRedmule] Set W addr 0x%x)\n", value);
                 break;
-            case 32:
-                _this->trace.msg("[LightRedmule] write status\n");
+            
+            case 72:
+                _this->z_addr = value;
+                _this->trace.msg("[LightRedmule] Set Z addr 0x%x)\n", value);
                 break;
+
+            case 76:
+                _this->m_size = value & 0xFFFF;
+                _this->trace.msg("[LightRedmule] Set M size 0x%x)\n", value & 0xFFFF);
+                _this->k_size = (value >> 16) & 0xFFFF;
+                _this->trace.msg("[LightRedmule] Set K size 0x%x)\n", (value >> 16) & 0xFFFF);
+                break;
+
+            case 80:
+                _this->n_size = value;
+                _this->trace.msg("[LightRedmule] Set N addr 0x%x)\n", value);
+                break;
+
+            case 84:
+                _this->trace.msg("[LightRedmule] Matrix Arithmetic Reg\n");
+                break;
+                
             default:
                 _this->trace.msg("[LightRedmule] write to INVALID address\n");
         }
