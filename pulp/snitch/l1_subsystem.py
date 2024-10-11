@@ -22,7 +22,7 @@ from interco.interleaver import Interleaver
 from pulp.snitch.snitch_cluster.dma_interleaver import DmaInterleaver
 import math
 
-import pulp.snitch.hwpe_interleaver import HWPEInterleaver
+from pulp.snitch.hwpe_interleaver import HWPEInterleaver
 
 
 class L1_subsystem(gvsoc.systree.Component):
