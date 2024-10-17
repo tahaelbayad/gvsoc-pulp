@@ -699,7 +699,7 @@ vp::IoReqStatus LightRedmule::req(vp::Block *__this, vp::IoReq *req)
         _this->redmule_query = req;
         return vp::IO_REQ_PENDING;
 
-    } else if ((is_write == 0) && (offset == 36) && (_this->state.get() == IDLE)){
+    } else if ((is_write == 1) && (offset == 0) && (_this->state.get() == IDLE)){
         /*************************
         *  Asynchronize Trigger  *
         *************************/
@@ -744,10 +744,10 @@ vp::IoReqStatus LightRedmule::req(vp::Block *__this, vp::IoReq *req)
                 _this->w_addr = value;
                 _this->trace.msg("[LightRedmule] Set W addr 0x%x)\n", value);
                 break;
-            
+            // swap z with y
             case 72:
-                _this->z_addr = value;
-                _this->trace.msg("[LightRedmule] Set Z addr 0x%x)\n", value);
+                _this->y_addr = value;
+                _this->trace.msg("[LightRedmule] Set Y addr 0x%x)\n", value);
                 break;
 
             case 76:
