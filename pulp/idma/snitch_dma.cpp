@@ -49,6 +49,10 @@ private:
     IDmaBeTcdm be_tcdm_read;
     IDmaBeTcdm be_tcdm_write;
     IDmaBe be;
+
+    IDmaBeAxi fifo_out_be;
+    IDmaBeAxi fifo_in_be;
+
 };
 
 
@@ -59,8 +63,12 @@ SnitchDma::SnitchDma(vp::ComponentConf &config)
     me(this, &this->fe, &this->be),
     be_axi_read(this, "axi_read", &this->be), be_axi_write(this, "axi_write", &this->be),
     be_tcdm_read(this, "tcdm_read", &this->be), be_tcdm_write(this, "tcdm_write", &this->be),
+
+    fifo_out_be(this, "fifo_out", &this->be),
+    fifo_in_be(this, "fifo_in", &this->be),
+
     be(this, &this->me, &this->be_tcdm_read, &this->be_tcdm_write,
-        &this->be_axi_read, &this->be_axi_write)
+        &this->be_axi_read, &this->be_axi_write, &this->fifo_out_be, &this->fifo_in_be )
 {
 }
 

@@ -118,7 +118,7 @@ bool IDmaBeTcdm::can_accept_data()
 // Called by backend to push data for the current burst
 void IDmaBeTcdm::write_data(uint8_t *data, uint64_t size)
 {
-    this->trace.msg(vp::Trace::LEVEL_TRACE, "Writing data (size: 0x%lx)\n", size);
+    this->trace.msg(vp::Trace::LEVEL_TRACE, "Writing data (size: 0x%lx) data %x\n", size, data);
 
     // Since the data may be bigger than a line, first enqueue the whole data and process it
     // line by line
@@ -162,8 +162,8 @@ void IDmaBeTcdm::write_line()
         uint64_t base = this->write_current_chunk_base;
         uint64_t size = this->get_line_size(this->write_current_chunk_base, this->write_current_chunk_size);
 
-        this->trace.msg(vp::Trace::LEVEL_TRACE, "Writing line to TCDM (base: 0x%lx, size: 0x%lx)\n",
-            base, size);
+        this->trace.msg(vp::Trace::LEVEL_TRACE, "Writing line to TCDM (base: 0x%lx, size: 0x%lx) data %x\n",
+            base, size, this->write_current_chunk_data);
 
         // Prepare the line request
         vp::IoReq *req = &this->req;

@@ -211,7 +211,10 @@ public:
      *  range.
      */
     IDmaBe(vp::Component *idma, IdmaTransferProducer *me, IdmaBeConsumer *loc_be_read,
-        IdmaBeConsumer *loc_be_write, IdmaBeConsumer *ext_be_read, IdmaBeConsumer *ext_be_write);
+        IdmaBeConsumer *loc_be_write, IdmaBeConsumer *ext_be_read, IdmaBeConsumer *ext_be_write,
+        
+        IdmaBeConsumer *fifo_out_be, IdmaBeConsumer *fifo_in_be
+        );
 
     void reset(bool active);
 
@@ -264,4 +267,7 @@ private:
     uint64_t loc_base;
     // Size of the local area
     uint64_t loc_size;
+
+    IdmaBeConsumer *fifo_out_be;
+    IdmaBeConsumer *fifo_in_be;
 };
