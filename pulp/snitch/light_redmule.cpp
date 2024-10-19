@@ -744,10 +744,11 @@ vp::IoReqStatus LightRedmule::req(vp::Block *__this, vp::IoReq *req)
                 _this->w_addr = value;
                 _this->trace.msg("[LightRedmule] Set W addr 0x%x)\n", value);
                 break;
-            // swap z with y
+            
             case 72:
                 _this->y_addr = value;
-                _this->trace.msg("[LightRedmule] Set Y addr 0x%x)\n", value);
+                _this->z_addr = value;
+                _this->trace.msg("[LightRedmule] Set Y and Z addr 0x%x)\n", value);
                 break;
 
             case 76:
