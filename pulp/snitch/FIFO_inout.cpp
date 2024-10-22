@@ -85,7 +85,7 @@ void FIFO_inout::idma_req(vp::Block *__this, fifo_req_t *fifo_req)
         fifo_resp_t resp = {.push= false, .valid=true, .data = _this->fifo_inout.front()};
         _this->trace.msg("pop data %x \n", _this->fifo_inout.front() );
         _this->fifo_inout.pop();
-        _this->fifo_in_resp_itf.sync(&resp);
+        _this->fifo_out_resp_itf.sync(&resp);
         
     }
 

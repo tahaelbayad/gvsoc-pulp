@@ -136,7 +136,7 @@ void IDmaBeFifo::write_chunk()
         this->last_chunk_timestamp = this->clock.get_cycles();
 
         // do i need it?
-        //uint64_t base = this->write_current_chunk_base;
+        // uint64_t base = this->write_current_chunk_base;
 
 
         this->trace.msg(vp::Trace::LEVEL_TRACE, " sending to fifo size 0x%lx data %x\n", this->write_current_chunk_size, this->write_current_chunk);
@@ -179,8 +179,8 @@ void IDmaBeFifo::fifo_response(vp::Block *__this,  fifo_resp_t *fifo_resp)
             if(_this->be->is_ready_to_accept_data())
             {
                 uint64_t size = _this->read_pending_data_size;
-                _this->read_pending_data_size = 0;
-                 _this->trace.msg(vp::Trace::LEVEL_TRACE, "sending data from fifo: data and size \n", size, fifo_resp->data );
+                //_this->read_pending_data_size = 0;
+                _this->trace.msg(vp::Trace::LEVEL_TRACE, "sending data from fifo: data %x and size %lx \n", fifo_resp->data, size  );
                 _this->remove_chunk_from_current_burst( size );
                 _this->be->write_data(fifo_resp->data, size);
        
@@ -193,7 +193,6 @@ void IDmaBeFifo::fifo_response(vp::Block *__this,  fifo_resp_t *fifo_resp)
                 _this->fsm_event.enqueue(1);
 
             }
-
         }
     }
 }
@@ -266,7 +265,7 @@ void IDmaBeFifo::fsm_handler(vp::Block *__this, vp::ClockEvent *event)
     }
     else
     {
-        _this->fsm_event.enqueue(100);
+        _this->fsm_event.enqueue(1);
     }
     
 }
@@ -276,8 +275,9 @@ void IDmaBeFifo::fsm_handler(vp::Block *__this, vp::ClockEvent *event)
 void IDmaBeFifo::read_data()
 {
     uint64_t base = this->current_burst_base;
-    // this->read_pending_data_size = std::min(this->current_burst_size, this->fifo_data_width);
-    this->read_pending_data_size = this->get_line_size(base, this->current_burst_size);
+    
+    this->read_pending_data_size = std::min(this->current_burst_size, this->fifo_data_width);
+    //this->read_pending_data_size = this->get_line_size(base, this->current_burst_size);
 
     this->trace.msg(vp::Trace::LEVEL_TRACE, "reading data from fifo (size: 0x%lx)\n", this->read_pending_data_size);
 
