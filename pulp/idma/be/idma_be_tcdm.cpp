@@ -311,6 +311,8 @@ void IDmaBeTcdm::read_line()
     {
         // If there is no latency and backend is ready, we can immediately push the data
         this->remove_chunk_from_current_burst(size);
+        this->trace.msg(vp::Trace::LEVEL_TRACE, "sending line from TCDM (base: 0x%lx, size: 0x%lx) data %x \n",
+        base, size, req->get_data() );
         this->be->write_data(req->get_data(), size);
     }
     else

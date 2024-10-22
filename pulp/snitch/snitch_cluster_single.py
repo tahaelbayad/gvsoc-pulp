@@ -35,6 +35,8 @@ import gvsoc.runner as gvsoc
 
 import math
 
+from pulp.snitch.FIFO_inout import FIFO_inout
+
 
 class Soc(st.Component):
 
@@ -159,6 +161,11 @@ class Soc(st.Component):
         int_cores[nb_cores-1].o_OFFLOAD(idma.i_OFFLOAD())
         idma.o_OFFLOAD_GRANT(int_cores[nb_cores-1].i_OFFLOAD_GRANT())
 
+        fifo_inout = FIFO_inout( self, 'fifo_inout' )
+        idma.o_FIFO( fifo_inout.i_INPUT() )
+
+        fifo_inout.o_FIFO_in(idma.i_FIFO_in())
+        fifo_inout.o_FIFO_out(idma.i_FIFO_out())
 
         # Core Interconnections
         for core_id in range(0, nb_cores):

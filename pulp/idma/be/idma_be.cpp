@@ -58,34 +58,24 @@ IDmaBe::IDmaBe(vp::Component *idma, IdmaTransferProducer *me,
 IdmaBeConsumer *IDmaBe::get_be_consumer(uint64_t base, uint64_t size, bool is_read)
 {
     // Returns local backend if it falls within local area, or external backend otherwise
-    this->trace.msg("[get_be_consumer] base %llx, size %llx, is_read %d \n", base, size, is_read );
+    
     bool is_loc = base >= this->loc_base && base + size <= this->loc_base + this->loc_size;
 
     if(is_loc)
     {
-        this->trace.msg("[get_be_consumer] is_loc: base %llx and base + size %llx\n", base, base + size);
+        
         return is_read ? this->loc_be_read : this->loc_be_write;
     }
 
-    else if( base == 0x10040010 )
+    if( base >= 0x10040000 && base + size <=  0x10040510 )
     {
-        this->trace.msg("[get_be_consumer] fifo out: base %llx and base + size %llx\n", base, base + size);
-        return this->fifo_out_be;
-
-        trace.force_warning("[get_be_consumer] fifo out: base %llx and base + size %llx and is_read %d\n", base, base + size, is_read);
-    }
-
-    else if( base == 0x10040000 )
-    {
-        this->trace.msg("[get_be_consumer] fifo in: base %llx and base + size %llx\n", base, base + size);
-        return this->fifo_in_be;
         
-        trace.force_warning("[get_be_consumer] fifo in: base %llx and base + size %llx and is_read %d\n", base, base + size, is_read);
+        return is_read ? this->fifo_in_be : this->fifo_out_be;
     }
 
     else
     {
-        this->trace.msg("[get_be_consumer] is ext: base %llx and base + size %llx\n", base, base + size);
+        
         return is_read ? this->ext_be_read : this->ext_be_write;
     }
 }

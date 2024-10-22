@@ -8,6 +8,27 @@
 #include "idma_be.hpp"
 
 
+
+class fifo_req_t
+{
+public:
+    bool push;
+    uint8_t *data;
+};
+
+class fifo_resp_t
+{
+public:
+    // 1 push , 0 pop
+    bool push;
+
+
+    bool valid;
+    uint8_t *data;
+
+};
+
+
 class IDmaBeFifo: public vp::Block, public IdmaBeConsumer
 {
 public:
@@ -18,7 +39,7 @@ public:
      * @param itf_name Name of the interface where the backend should send requests.
      * @param be The top backend.
      */
-    IDmaBeFifo(vp::Component *idma, std::string itf_name, IdmaBeProducer *be);
+    IDmaBeFifo(vp::Component *idma, std::string itf_name, std::string slave_itf, IdmaBeProducer *be);
 
     // reset all values
     void reset(bool active) override;
@@ -41,7 +62,7 @@ public:
     // called by be before calling read/write burst
     uint64_t get_burst_size(uint64_t base, uint64_t size) override;
 
-    // called by be before calling read/write burst
+    // called by backend before calling read/write burst
     bool can_accept_burst() override;
 
     // called by src before sending data to dst (before be->write_data which call dst->write_data)
@@ -54,84 +75,68 @@ private:
     
     static void fsm_handler(vp::Block *__this, vp::ClockEvent *event);
 
+    static void fifo_response(vp::Block *__this,  fifo_resp_t *fifo_resp);
+
+    
+
+
     // Write a line to TCDM
-    void write_line();
+    void write_chunk();
 
     // Read a line from TCDM
-    void read_line();
+    void read_data();
 
     // Handle the end of a write request
     void write_handle_req_ack();
 
-    // Remove a chunk of data from current burst. This is used to track when a burst is done
+    void write_handle_req_end( fifo_resp_t *fifo_resp );
+
+    void read_handle_req_end( fifo_resp_t *fifo_resp );
+
+    // Remove a chunk of data from current burst. This is used to track when a burst is done 
     void remove_chunk_from_current_burst(uint64_t size);
-
-    // Extract first pending information to let FSM start writing and reading lines from it
-    void activate_burst();
-
-
     
     // Enqueue a burst to pending queue. Burst will be processed in order
     void enqueue_burst(uint64_t base, uint64_t size, bool is_write);
 
+    uint64_t get_line_size(uint64_t base, uint64_t size);
+
     
     IdmaBeProducer *be;
-    
 
-    // IO da sostituire con Wire
-    vp::IoMaster ico_itf;
-   
+    // change IoMaster with WireMaster
+    vp::WireMaster<fifo_req_t *> ico_itf;
+
+    vp::WireSlave<fifo_resp_t *> fifo_resp_itf; 
+
+
     vp::Trace trace;
     
     vp::ClockEvent fsm_event;
 
-    // IO da sostituire con Wire
-    vp::IoReq req;
-
-    // Current base of the first transfer. This is when a chunk of data to be written is received
-    // to know the base where it should be written.
-    uint64_t current_burst_base;
-
-    // Size of currently active burst, the one from which lines are read or written
     uint64_t current_burst_size;
+    uint64_t current_burst_base;
+    bool current_burst_is_write;
+    uint64_t fifo_data_width;
 
-    // When a chunk is being written line by line, this gives the base address for next line
-    uint64_t write_current_chunk_base;
-
-    // When a chunk is being written line by line, this gives the remaining size
     uint64_t write_current_chunk_size;
 
-    // Size to be acknowledged when write response is received
+    uint64_t write_ack_size;
+
+    uint64_t size_to_ack;
+
     uint64_t write_current_chunk_ack_size;
-
-    // When a chunk is being written line by line, this gives the data pointer for next line
-    uint8_t *write_current_chunk_data;
-
-    // When a chunk is being written line by line, this gives the data pointer to the beginning
-    // of the chunk
-
-
-    // FORSE
-
+    uint64_t write_current_chunk_base;
     uint8_t *write_current_chunk_data_start;
+    uint8_t *write_current_chunk;
 
+    uint64_t read_pending_data_size;
 
-    // Timestamp in cycles of the last time a line was read or written. Used to make sure we send
-    // only one line per cycle
-    int64_t last_line_timestamp;
+    uint8_t *read_pending_data;
 
+    int64_t last_chunk_timestamp;
 
+    int count;
+    uint64_t write_size_inc;
 
-    // FORSE
-
-
-    // When a burst is being read, the last line read from TCDM may be blocked because the
-    // backend is not ready to accept it. In this case this gives the data pointer containing the
-    // data to be written
-    uint8_t *read_pending_line_data;
-
-    // When a burst is being read, the last line read from TCDM may be blocked because the
-    // backend is not ready to accept it. In this case this gives the size of the
-    // data to be written
-    uint64_t read_pending_line_size;
 };
