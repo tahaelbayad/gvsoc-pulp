@@ -34,6 +34,7 @@ void IDmaBeFifo::reset(bool active)
     this->read_pending_data_size = 0;
     this->last_chunk_timestamp = -1;
     this->size_to_ack = 0;
+    this->write_size_inc = 0;
     }
 }
 
@@ -55,7 +56,7 @@ void IDmaBeFifo::enqueue_burst(uint64_t base, uint64_t size, bool is_write)
     this->current_burst_is_write = is_write;
 
     // do i need it?
-    // this->current_burst_base = base;
+    this->current_burst_base = base;
 
     this->update();
 }
@@ -110,7 +111,7 @@ void IDmaBeFifo::write_data(uint8_t *data, uint64_t size)
     this->trace.msg(vp::Trace::LEVEL_TRACE, " Writing data (size: 0x%lx) data %x\n", size, data);
     
     // do I need it?
-    // this->write_current_chunk_base = this->current_burst_base;
+    this->write_current_chunk_base = this->current_burst_base;
 
     // size of data read by src be
     this->write_current_chunk_size = size;
@@ -135,18 +136,28 @@ void IDmaBeFifo::write_chunk()
         this->last_chunk_timestamp = this->clock.get_cycles();
 
         // do i need it?
-        // uint64_t base = this->write_current_chunk_base;
+        uint64_t base = this->write_current_chunk_base;
 
-        this->new_current_chunk_size = std::min( this->write_current_chunk_size, this->fifo_data_width );
-
+        // this->new_current_chunk_size = std::min( this->write_current_chunk_size, this->fifo_data_width );
+        // this->new_current_chunk_size = std::min( this->write_current_chunk_size, this->fifo_data_width );
+        // this->new_current_chunk_size = this->get_line_size( base , this->write_current_chunk_size );
+        this->new_current_chunk_size = this->write_current_chunk_size;
 
         this->trace.msg(vp::Trace::LEVEL_TRACE, " sending to fifo size 0x%lx data %x\n",this->new_current_chunk_size, this->write_current_chunk);
 
+        
         // prepare req
         fifo_req_t req = { .push=true, .data = this->write_current_chunk, .size = this->new_current_chunk_size};
 
         this->write_current_chunk_size -= this->new_current_chunk_size;
 
+        // uint8_t inc = 0x0;
+        // for(int i =0; i<8; i++)
+        // {
+        //     this->trace.msg(vp::Trace::LEVEL_TRACE,"value %x \n", *this->write_current_chunk + inc );
+        //     inc += 0x1;
+        // }
+        
         // sending req to fifo
         this->ico_itf.sync( &req );
     }
@@ -183,6 +194,14 @@ void IDmaBeFifo::fifo_response(vp::Block *__this,  fifo_resp_t *fifo_resp)
                 //_this->read_pending_data_size = 0;
                 _this->trace.msg(vp::Trace::LEVEL_TRACE, "sending data from fifo: data %x and size %lx \n", fifo_resp->data, fifo_resp->size );
 
+                uint8_t inc = 0x0;
+                for(int i =0; i<8; i++)
+                {
+                    _this->trace.msg(vp::Trace::LEVEL_TRACE,"value %x \n", *fifo_resp->data + inc );
+                    inc += 0x1;
+                }
+
+
                 _this->remove_chunk_from_current_burst( fifo_resp->size );
                 _this->be->write_data(fifo_resp->data, fifo_resp->size);
        
@@ -214,6 +233,8 @@ void IDmaBeFifo::remove_chunk_from_current_burst(uint64_t size)
 
     if(this->current_burst_size == 0)
     {
+        this->write_size_inc = 0;
+
         this->be->update();
         this->update();
     }
