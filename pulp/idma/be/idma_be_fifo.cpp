@@ -16,9 +16,8 @@ IDmaBeFifo::IDmaBeFifo(vp::Component *idma, std::string itf_name, std::string sl
 
     this->fifo_resp_itf.set_sync_meth(&IDmaBeFifo::fifo_response);
 
+    // where to use it?
     this->fifo_data_width = 0x40;
-
-   
 
     this->count = 0;
 }
@@ -52,11 +51,11 @@ void IDmaBeFifo::enqueue_burst(uint64_t base, uint64_t size, bool is_write)
     // burst size
     this->current_burst_size = size;
 
-    //is write
+    // is write
     this->current_burst_is_write = is_write;
 
     // do i need it?
-    this->current_burst_base = base;
+    // this->current_burst_base = base;
 
     this->update();
 }
@@ -111,7 +110,7 @@ void IDmaBeFifo::write_data(uint8_t *data, uint64_t size)
     this->trace.msg(vp::Trace::LEVEL_TRACE, " Writing data (size: 0x%lx) data %x\n", size, data);
     
     // do I need it?
-    this->write_current_chunk_base = this->current_burst_base;
+    // this->write_current_chunk_base = this->current_burst_base;
 
     // size of data read by src be
     this->write_current_chunk_size = size;
@@ -138,14 +137,15 @@ void IDmaBeFifo::write_chunk()
         // do i need it?
         // uint64_t base = this->write_current_chunk_base;
 
+        this->new_current_chunk_size = std::min( this->write_current_chunk_size, this->fifo_data_width );
 
-        this->trace.msg(vp::Trace::LEVEL_TRACE, " sending to fifo size 0x%lx data %x\n", this->write_current_chunk_size, this->write_current_chunk);
+
+        this->trace.msg(vp::Trace::LEVEL_TRACE, " sending to fifo size 0x%lx data %x\n",this->new_current_chunk_size, this->write_current_chunk);
 
         // prepare req
-        fifo_req_t req = { .push=true, .data = this->write_current_chunk + this->write_size_inc };
-  
+        fifo_req_t req = { .push=true, .data = this->write_current_chunk, .size = this->new_current_chunk_size};
 
-        this->write_size_inc += this->write_current_chunk_size;
+        this->write_current_chunk_size -= this->new_current_chunk_size;
 
         // sending req to fifo
         this->ico_itf.sync( &req );
@@ -162,14 +162,15 @@ void IDmaBeFifo::write_chunk()
 void IDmaBeFifo::fifo_response(vp::Block *__this,  fifo_resp_t *fifo_resp)
 {
     IDmaBeFifo *_this = (IDmaBeFifo *)__this;
+    
+    _this->count++;
 
     if(fifo_resp->valid)
     {
         // push
         if (fifo_resp->push)
         {
-            _this->remove_chunk_from_current_burst(_this->write_current_chunk_size);
-            _this->write_current_chunk_size = 0;
+            _this->remove_chunk_from_current_burst(_this->new_current_chunk_size);
             _this->write_handle_req_ack();
         }
         // pop
@@ -178,22 +179,30 @@ void IDmaBeFifo::fifo_response(vp::Block *__this,  fifo_resp_t *fifo_resp)
             // be accept data
             if(_this->be->is_ready_to_accept_data())
             {
-                uint64_t size = _this->read_pending_data_size;
+                // uint64_t size = _this->read_pending_data_size;
                 //_this->read_pending_data_size = 0;
-                _this->trace.msg(vp::Trace::LEVEL_TRACE, "sending data from fifo: data %x and size %lx \n", fifo_resp->data, size  );
-                _this->remove_chunk_from_current_burst( size );
-                _this->be->write_data(fifo_resp->data, size);
+                _this->trace.msg(vp::Trace::LEVEL_TRACE, "sending data from fifo: data %x and size %lx \n", fifo_resp->data, fifo_resp->size );
+
+                _this->remove_chunk_from_current_burst( fifo_resp->size );
+                _this->be->write_data(fifo_resp->data, fifo_resp->size);
        
             }
             // be not ready to accept data
             else
             {
-                _this->trace.msg(vp::Trace::LEVEL_TRACE, "backend to ready to accept data \n");
+                _this->trace.msg(vp::Trace::LEVEL_TRACE, "backend not ready to accept data \n");
+
                 _this->read_pending_data = fifo_resp->data;
+                _this->read_pending_data_size = fifo_resp->size;
+
                 _this->fsm_event.enqueue(1);
 
             }
         }
+    }
+    else
+    {
+        // fifo full or empty
     }
 }
 
@@ -230,10 +239,10 @@ void IDmaBeFifo::fsm_handler(vp::Block *__this, vp::ClockEvent *event)
 {   
     IDmaBeFifo *_this = (IDmaBeFifo *)__this;
 
-    _this->count++;
-    if(_this->count > 100)
+    
+    if(_this->count > 2)
     {
-        //_this->trace.force_warning("count > 100 \n");
+        // _this->trace.force_warning("count > 2 \n");
     }
 
     // if there's a pending write chunk
@@ -245,7 +254,6 @@ void IDmaBeFifo::fsm_handler(vp::Block *__this, vp::ClockEvent *event)
     {
         _this->fsm_event.enqueue();
     }
-
 
     // if read burst is pendings and no previous chunk has been sent
     if( _this->current_burst_size > 0  && !_this->current_burst_is_write && _this->read_pending_data_size == 0)
@@ -274,12 +282,12 @@ void IDmaBeFifo::fsm_handler(vp::Block *__this, vp::ClockEvent *event)
 
 void IDmaBeFifo::read_data()
 {
-    uint64_t base = this->current_burst_base;
+   //  uint64_t base = this->current_burst_base;
     
-    this->read_pending_data_size = std::min(this->current_burst_size, this->fifo_data_width);
+    // this->read_pending_data_size = std::min(this->current_burst_size, this->fifo_data_width);
     //this->read_pending_data_size = this->get_line_size(base, this->current_burst_size);
 
-    this->trace.msg(vp::Trace::LEVEL_TRACE, "reading data from fifo (size: 0x%lx)\n", this->read_pending_data_size);
+    this->trace.msg(vp::Trace::LEVEL_TRACE, "sending read req to fifo \n");
 
     // prepare fifo req
     fifo_req_t req = { .push=false };

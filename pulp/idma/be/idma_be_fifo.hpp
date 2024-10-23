@@ -14,6 +14,8 @@ class fifo_req_t
 public:
     bool push;
     uint8_t *data;
+
+    uint64_t size;
 };
 
 class fifo_resp_t
@@ -25,6 +27,8 @@ public:
 
     bool valid;
     uint8_t *data;
+
+    uint64_t size;
 
 };
 
@@ -77,9 +81,6 @@ private:
 
     static void fifo_response(vp::Block *__this,  fifo_resp_t *fifo_resp);
 
-    
-
-
     // Write a line to TCDM
     void write_chunk();
 
@@ -129,6 +130,8 @@ private:
     uint64_t write_current_chunk_base;
     uint8_t *write_current_chunk_data_start;
     uint8_t *write_current_chunk;
+
+    uint64_t new_current_chunk_size;
 
     uint64_t read_pending_data_size;
 
