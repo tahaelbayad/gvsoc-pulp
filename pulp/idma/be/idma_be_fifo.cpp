@@ -143,7 +143,9 @@ void IDmaBeFifo::write_chunk()
         // this->new_current_chunk_size = this->get_line_size( base , this->write_current_chunk_size );
         this->new_current_chunk_size = this->write_current_chunk_size;
 
-        this->trace.msg(vp::Trace::LEVEL_TRACE, " sending to fifo size 0x%lx data %x\n",this->new_current_chunk_size, this->write_current_chunk);
+        this->trace.msg(vp::Trace::LEVEL_TRACE, " sending to fifo size 0x%lx data %x\n", this->new_current_chunk_size, this->write_current_chunk);
+
+
 
         
         // prepare req
@@ -151,12 +153,6 @@ void IDmaBeFifo::write_chunk()
 
         this->write_current_chunk_size -= this->new_current_chunk_size;
 
-        // uint8_t inc = 0x0;
-        // for(int i =0; i<8; i++)
-        // {
-        //     this->trace.msg(vp::Trace::LEVEL_TRACE,"value %x \n", *this->write_current_chunk + inc );
-        //     inc += 0x1;
-        // }
         
         // sending req to fifo
         this->ico_itf.sync( &req );
@@ -194,12 +190,7 @@ void IDmaBeFifo::fifo_response(vp::Block *__this,  fifo_resp_t *fifo_resp)
                 //_this->read_pending_data_size = 0;
                 _this->trace.msg(vp::Trace::LEVEL_TRACE, "sending data from fifo: data %x and size %lx \n", fifo_resp->data, fifo_resp->size );
 
-                uint8_t inc = 0x0;
-                for(int i =0; i<8; i++)
-                {
-                    _this->trace.msg(vp::Trace::LEVEL_TRACE,"value %x \n", *fifo_resp->data + inc );
-                    inc += 0x1;
-                }
+ 
 
 
                 _this->remove_chunk_from_current_burst( fifo_resp->size );
