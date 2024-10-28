@@ -44,11 +44,8 @@ private:
     
     vp::WireMaster<fifo_resp_t *> fifo_in_resp_itf;
 
-    std::queue<uint8_t>fifo_inout;
-    std::queue<uint64_t> size_queue;
-
-
-    //std::queue<uint8_t> fifo_out;
+    std::queue<uint8_t> fifo_inout;
+    // std::queue<uint64_t> size_queue;
 
     // uncommnet
     vp::Trace trace;
@@ -80,14 +77,14 @@ void FIFO_inout::idma_req(vp::Block *__this, fifo_req_t *fifo_req)
     {
        
        // size of the req
-        _this->size_queue.push(fifo_req->size);
+       // _this->size_queue.push(fifo_req->size);
 
         for( int i = 0; i < fifo_req->size; i++ )
         {
             _this->fifo_inout.push(*(fifo_req->data + i ));
 
-            _this->trace.msg(vp::Trace::LEVEL_TRACE,"data (size %lx) 0x%x: push value  %x  \n", 
-                    fifo_req->size,  fifo_req->data + i, *(fifo_req->data + i )  );
+            // _this->trace.msg(vp::Trace::LEVEL_TRACE,"data (size %lx) 0x%x: push value  %x  \n", 
+            //        fifo_req->size,  fifo_req->data + i, *(fifo_req->data + i )  );
         }
 
         fifo_resp_t resp = {.push= true, .valid=true};
@@ -97,15 +94,18 @@ void FIFO_inout::idma_req(vp::Block *__this, fifo_req_t *fifo_req)
     }
     else
     {
-        uint64_t size = _this->size_queue.front();
-        _this->size_queue.pop();
+        // uint64_t size = _this->size_queue.front();
+        // _this->size_queue.pop();
+
+        uint64_t size = fifo_req->size;
+        
         uint8_t data[size];
         uint8_t * data_ptr = &data[0];
 
         for(int i=0; i < size ; i++ )
         {   
             data[i] = _this->fifo_inout.front();
-            _this->trace.msg(vp::Trace::LEVEL_TRACE,"data (size %lx) %x: pop value %x \n", size, data_ptr + i, data[i] );
+            // _this->trace.msg(vp::Trace::LEVEL_TRACE,"data (size %lx) %x: pop value %x \n", size, data_ptr + i, data[i] );
             _this->fifo_inout.pop();
         }
 

@@ -142,4 +142,6 @@ private:
     int count;
     uint64_t write_size_inc;
 
+    uint64_t write_chunk_to_remove;
+
 };
