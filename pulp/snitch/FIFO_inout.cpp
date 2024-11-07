@@ -3,29 +3,13 @@
 #include <queue>
 
 
-class fifo_req_t
+class fifo_reqrsp_t
 {
 public:
-    // 1 push 0 pop
     bool push;
     uint8_t *data;
-
-    uint64_t size;
 };
 
-class fifo_resp_t
-{
-public: // if push 1 and valid 1: we correctly pushed data; if push 0 and valid 1: we correctly pop data.
-    // 1 push 0 pop
-    bool push;
-
-    bool valid;
-    uint8_t *data;
-
-    uint64_t size;
-
-
-};
 
 
 
@@ -37,17 +21,16 @@ public:
 
 private:
 
-    static void idma_req(vp::Block *__this,  fifo_req_t *fifo_req);
-    vp::WireSlave<fifo_req_t *> input_itf;
+    static void idma_req_handler(vp::Block *__this,  fifo_reqrsp_t *fifo_reqrsp);
 
-    vp::WireMaster<fifo_resp_t *> fifo_out_resp_itf;
+    vp::WireSlave<fifo_reqrsp_t *> i_dma_req_itf;
+
+    vp::WireMaster<fifo_reqrsp_t *> o_fifo_out_itf;
     
-    vp::WireMaster<fifo_resp_t *> fifo_in_resp_itf;
+    vp::WireMaster<fifo_reqrsp_t *> o_fifo_in_itf;
 
     std::queue<uint8_t> fifo_inout;
-    // std::queue<uint64_t> size_queue;
-
-    // uncommnet
+    
     vp::Trace trace;
 
 
@@ -57,62 +40,63 @@ private:
 FIFO_inout::FIFO_inout(vp::ComponentConf &config)
     : vp::Component(config)
 {
-    this->input_itf.set_sync_meth(&FIFO_inout::idma_req);
-    this->new_slave_port("input", &this->input_itf);
+    this->i_dma_req_itf.set_sync_meth(&FIFO_inout::idma_req_handler);
 
-    this->new_master_port("fifo_out_resp_o", &this->fifo_out_resp_itf);
+    this->new_slave_port("i_dma_req", &this->i_dma_req_itf);
 
-    this->new_master_port("fifo_in_resp_o", &this->fifo_in_resp_itf);
+    this->new_master_port("o_fifo_out", &this->o_fifo_out_itf);
 
-    this->traces.new_trace("trace", &this->trace);
+    this->new_master_port("o_fifo_in", &this->o_fifo_in_itf);
+
+    this->traces.new_trace("trace", &this->trace, vp::DEBUG);
 
 }
 
 
-void FIFO_inout::idma_req(vp::Block *__this, fifo_req_t *fifo_req)
+void FIFO_inout::idma_req_handler(vp::Block *__this, fifo_reqrsp_t *fifo_reqrsp)
 {
     FIFO_inout *_this = (FIFO_inout *)__this;
 
-    if(fifo_req->push)
+    // FIFO OUT
+    if(fifo_reqrsp->push)
     {
-       
-       // size of the req
-       // _this->size_queue.push(fifo_req->size);
-
-        for( int i = 0; i < fifo_req->size; i++ )
+        // push 8 bytes (64 bits)
+        for( int i = 0; i < 8; i++ )
         {
-            _this->fifo_inout.push(*(fifo_req->data + i ));
-
-            // _this->trace.msg(vp::Trace::LEVEL_TRACE,"data (size %lx) 0x%x: push value  %x  \n", 
-            //        fifo_req->size,  fifo_req->data + i, *(fifo_req->data + i )  );
+            // fifo_reqrsp->data points to the first byte
+            _this->fifo_inout.push(*(fifo_reqrsp->data + i ));
+            _this->trace.msg(vp::Trace::LEVEL_TRACE, "push data %d, (address %x)\n", *(fifo_reqrsp->data + i ), fifo_reqrsp->data + i  );
         }
 
-        fifo_resp_t resp = {.push= true, .valid=true};
+        // prepare resp
+        fifo_reqrsp_t resp = {.push= true};
         
-        _this->fifo_out_resp_itf.sync(&resp);
+        // send resp
+        _this->o_fifo_out_itf.sync(&resp);
 
     }
+
+    // FIFO IN
     else
     {
-        // uint64_t size = _this->size_queue.front();
-        // _this->size_queue.pop();
-
-        uint64_t size = fifo_req->size;
+        uint8_t data[64];
         
-        uint8_t data[size];
+        // pointer to the first byte
         uint8_t * data_ptr = &data[0];
 
-        for(int i=0; i < size ; i++ )
+        for(int i=0; i < 8; i++ )
         {   
+            // pops all 8 bytes            
             data[i] = _this->fifo_inout.front();
-            // _this->trace.msg(vp::Trace::LEVEL_TRACE,"data (size %lx) %x: pop value %x \n", size, data_ptr + i, data[i] );
+            _this->trace.msg(vp::Trace::LEVEL_TRACE, "pop data %d\n", data[i] );
             _this->fifo_inout.pop();
         }
 
-        fifo_resp_t resp = {.push= false, .valid=true, .data = data_ptr, .size = size };
+        // prepare resp
+        fifo_reqrsp_t resp = {.push= false, .data = data_ptr };
        
-
-        _this->fifo_in_resp_itf.sync(&resp);
+        // send resp 
+        _this->o_fifo_in_itf.sync(&resp);
         
     }
 

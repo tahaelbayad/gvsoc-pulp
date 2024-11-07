@@ -10,11 +10,11 @@ class FIFO_inout(gvsoc.systree.Component):
 
 
     def i_INPUT(self) -> gvsoc.systree.SlaveItf:
-        return gvsoc.systree.SlaveItf(self, 'input', signature='wire<fifo_req_t *>')
+        return gvsoc.systree.SlaveItf(self, 'i_dma_req', signature='wire<fifo_reqrsp_t *>')
     
     def o_FIFO_out(self, itf: gvsoc.systree.SlaveItf):
-        self.itf_bind('fifo_out_resp_o', itf, signature='wire<fifo_resp_t *>')
+        self.itf_bind('o_fifo_out', itf, signature='wire<fifo_reqrsp_t *>')
 
     def o_FIFO_in(self, itf: gvsoc.systree.SlaveItf):
-        self.itf_bind('fifo_in_resp_o', itf, signature='wire<fifo_resp_t *>')
+        self.itf_bind('o_fifo_in', itf, signature='wire<fifo_reqrsp_t *>')
 
