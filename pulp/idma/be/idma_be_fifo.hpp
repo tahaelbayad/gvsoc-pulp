@@ -72,10 +72,8 @@ private:
 
     vp::Trace trace;
     vp::ClockEvent fsm_event;
-
-    bool is_full;
+    
     int fifo_size;
-    int fifo_counter;
     uint64_t fifo_data_width;
 
     uint64_t current_burst_size;

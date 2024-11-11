@@ -185,6 +185,12 @@ public:
      * by the source backend protocol.
      */
     virtual void ack_data(uint8_t *data, int size) = 0;
+
+
+    bool is_fifo_full;
+    int fifo_elements;
+
+
 };
 
 
@@ -270,4 +276,6 @@ private:
 
     IdmaBeConsumer *fifo_out_be;
     IdmaBeConsumer *fifo_in_be;
+
+
 };

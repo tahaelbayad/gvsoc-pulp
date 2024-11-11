@@ -238,5 +238,8 @@ void IDmaBe::reset(bool active)
     {
         this->current_transfer_size = 0;
         this->prev_transfer_src_be = NULL;
+
+        this->is_fifo_full = false;
+        this->fifo_elements = 0;
     }
 }

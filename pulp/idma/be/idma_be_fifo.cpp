@@ -30,8 +30,6 @@ void IDmaBeFifo::reset(bool active)
     this->write_current_chunk_size = 0;
     this->read_pending_data_size = 0;
     this->last_chunk_timestamp = -1;
-    this->is_full = false;
-    this->fifo_counter = 0;
     }
 }
 
@@ -87,7 +85,7 @@ bool IDmaBeFifo::can_accept_burst()
 // only if no other pending chunks 
 bool IDmaBeFifo::can_accept_data()
 {
-    return !this->is_full;
+    return !this->be->is_fifo_full;
 }
 
 
@@ -137,10 +135,10 @@ void IDmaBeFifo::write_chunk()
         this->write_current_chunk += 0x08; // update after pushing 8 bytes
         
         // update fifo counter
-        this->fifo_counter++;
-        this->trace.msg(vp::Trace::LEVEL_TRACE, "fifo counter %d (+8 bytes to the fifo)\n", this->fifo_counter );
-        if(this->fifo_counter == this->fifo_size)
-            this->is_full = 1;
+        this->be->fifo_elements++;
+        this->trace.msg(vp::Trace::LEVEL_TRACE, "fifo counter %d (+8 bytes to the fifo)\n", this->be->fifo_elements );
+        if(this->be->fifo_elements == this->fifo_size)
+            this->be->is_fifo_full = 1;
         
         // sending req to fifo
         this->fifo_req_itf.sync( &req );
@@ -173,8 +171,8 @@ void IDmaBeFifo::fifo_response(vp::Block *__this,  fifo_reqrsp_t *fifo_resp)
         if(_this->be->is_ready_to_accept_data())
         {
             _this->trace.msg(vp::Trace::LEVEL_TRACE, "[fifo response] sending data from fifo: data %x and size %lx \n", fifo_resp->data, 0x08 );
-            _this->fifo_counter--;
-            _this->trace.msg(vp::Trace::LEVEL_TRACE, "fifo counter %d (-8 bytes to the fifo)\n", _this->fifo_counter);
+            _this->be->fifo_elements--;
+            _this->trace.msg(vp::Trace::LEVEL_TRACE, "fifo counter %d (-8 bytes from the fifo)\n", _this->be->fifo_elements);
             _this->remove_chunk_from_current_burst( 0x08 );
             _this->be->write_data(fifo_resp->data, 0x08 );
         }
@@ -247,8 +245,8 @@ void IDmaBeFifo::fsm_handler(vp::Block *__this, vp::ClockEvent *event)
     {
         _this->read_pending_data_size = 0;
         _this->remove_chunk_from_current_burst(0x08);
-        _this->fifo_counter--;
-        _this->trace.msg(vp::Trace::LEVEL_TRACE, "fifo counter %d (-8 bytes to the fifo)\n", _this->fifo_counter );
+        _this->be->fifo_elements--;
+        _this->trace.msg(vp::Trace::LEVEL_TRACE, "fifo counter %d (-8 bytes to the fifo)\n", _this->be->fifo_elements );
 
         _this->be->write_data(_this->read_pending_data, 0x08);
     }
