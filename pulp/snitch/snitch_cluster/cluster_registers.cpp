@@ -50,6 +50,7 @@ private:
     uint32_t bootaddr;
     uint32_t status;
     int nb_cores;
+    uint8_t hwpe_busy;
     vp::reg_32 barrier_status;
 
     std::vector<vp::WireSlave<bool>> barrier_req_itf;
@@ -99,7 +100,13 @@ vp::IoReqStatus ClusterRegisters::req(vp::Block *__this, vp::IoReq *req)
 
     _this->trace.msg("Received IO req (offset: 0x%llx, size: 0x%llx, is_write: %d)\n", offset, size, is_write);
 
-    _this->regmap.access(offset, size, data, is_write);
+    if(offset == 0x1a8 && size == 0x4){
+        if(is_write)
+            _this->hwpe_busy = *data;
+        else
+            req->set_data(& _this->hwpe_busy);
+    } else 
+        _this->regmap.access(offset, size, data, is_write);
 
     return vp::IO_REQ_OK;
 }
