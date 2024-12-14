@@ -25,7 +25,8 @@
 
 IDmaBe::IDmaBe(vp::Component *idma, IdmaTransferProducer *me,
     IdmaBeConsumer *loc_be_read, IdmaBeConsumer *loc_be_write,
-    IdmaBeConsumer *ext_be_read, IdmaBeConsumer *ext_be_write)
+    IdmaBeConsumer *ext_be_read, IdmaBeConsumer *ext_be_write,
+    IdmaBeConsumer *fifo_out_be, IdmaBeConsumer *fifo_in_be)
 :   Block(idma, "be"),
     fsm_event(this, &IDmaBe::fsm_handler)
 {
@@ -35,6 +36,9 @@ IDmaBe::IDmaBe(vp::Component *idma, IdmaTransferProducer *me,
     this->loc_be_write = loc_be_write;
     this->ext_be_read = ext_be_read;
     this->ext_be_write = ext_be_write;
+    this->fifo_out_be = fifo_out_be;
+    this->fifo_in_be = fifo_in_be;
+
 
     // Declare our own trace so that we can individually activate traces
     this->traces.new_trace("trace", &this->trace, vp::DEBUG);
@@ -50,8 +54,18 @@ IdmaBeConsumer *IDmaBe::get_be_consumer(uint64_t base, uint64_t size, bool is_re
 {
     // Returns local backend if it falls within local area, or external backend otherwise
     bool is_loc = base >= this->loc_base && base + size <= this->loc_base + this->loc_size;
-    return is_loc ? (is_read ? this->loc_be_read :  this->loc_be_write) :
-        (is_read ? this->ext_be_read : this->ext_be_write);
+    if(is_loc)
+    {   
+        return is_read ? this->loc_be_read : this->loc_be_write;
+    }
+    if( base >= 0x10040000 && base + size <=  0x10040510 )
+    {   
+        return is_read ? this->fifo_in_be : this->fifo_out_be;
+    }
+    else
+    {
+        return is_read ? this->ext_be_read : this->ext_be_write;
+    }
 }
 
 

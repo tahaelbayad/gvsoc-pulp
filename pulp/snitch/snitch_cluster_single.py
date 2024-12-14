@@ -33,6 +33,7 @@ from pulp.spatz.cluster_registers import Cluster_registers
 from elftools.elf.elffile import *
 import gvsoc.runner as gvsoc
 from pulp.redmule.redmule import Redmule
+from pulp.snitch.mesh_FIFOs import mesh_FIFOs
 
 import math
 
@@ -179,6 +180,10 @@ class Soc(st.Component):
         int_cores[nb_cores-1].o_OFFLOAD(idma.i_OFFLOAD())
         idma.o_OFFLOAD_GRANT(int_cores[nb_cores-1].i_OFFLOAD_GRANT())
 
+        meshFIFOs = mesh_FIFOs(self, 'meshFIFOs')
+        idma.o_FIFO(meshFIFOs.i_DMA())
+        meshFIFOs.o_FIFOout(idma.i_FIFOout())
+        meshFIFOs.o_FIFOin(idma.i_FIFOin())
 
         # Core Interconnections
         for core_id in range(0, nb_cores):

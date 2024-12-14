@@ -185,6 +185,10 @@ public:
      * by the source backend protocol.
      */
     virtual void ack_data(uint8_t *data, int size) = 0;
+    
+    
+    bool is_fifo_full;
+    int fifo_elements;
 };
 
 
@@ -211,7 +215,8 @@ public:
      *  range.
      */
     IDmaBe(vp::Component *idma, IdmaTransferProducer *me, IdmaBeConsumer *loc_be_read,
-        IdmaBeConsumer *loc_be_write, IdmaBeConsumer *ext_be_read, IdmaBeConsumer *ext_be_write);
+        IdmaBeConsumer *loc_be_write, IdmaBeConsumer *ext_be_read, IdmaBeConsumer *ext_be_write,
+        IdmaBeConsumer *fifo_out_be, IdmaBeConsumer *fifo_in_be);
 
     void reset(bool active);
 
@@ -264,4 +269,10 @@ private:
     uint64_t loc_base;
     // Size of the local area
     uint64_t loc_size;
+
+    // backend for mesh FIFOs
+    IdmaBeConsumer *fifo_out_be;
+    IdmaBeConsumer *fifo_in_be;
+
+
 };
