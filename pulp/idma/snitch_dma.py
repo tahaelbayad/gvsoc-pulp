@@ -45,7 +45,8 @@ class SnitchDma(gvsoc.systree.Component):
             burst_queue_size: int=8,
             loc_base: int=0,
             loc_size: int=0,
-            tcdm_width: int=0):
+            tcdm_width: int=0,
+            fifo_size: int=40):
 
         super().__init__(parent, name)
 
@@ -56,6 +57,7 @@ class SnitchDma(gvsoc.systree.Component):
             'pulp/idma/be/idma_be.cpp',
             'pulp/idma/be/idma_be_axi.cpp',
             'pulp/idma/be/idma_be_tcdm.cpp',
+            'pulp/idma/be/idma_be_fifo.cpp',
         ])
 
         self.add_properties({
@@ -64,6 +66,7 @@ class SnitchDma(gvsoc.systree.Component):
             "loc_base": loc_base,
             "loc_size": loc_size,
             "tcdm_width": tcdm_width,
+            "fifo_size": fifo_size,
         })
 
     def i_OFFLOAD(self) -> gvsoc.systree.SlaveItf:
@@ -116,3 +119,13 @@ class SnitchDma(gvsoc.systree.Component):
         """
         self.itf_bind('tcdm_read', itf, signature='io')
         self.itf_bind('tcdm_write', itf, signature='io')
+
+    def o_FIFO( self, itf: gvsoc.systree.SlaveItf ):
+        self.itf_bind('o_fifo_out_req', itf, signature='wire<fifo_reqrsp_t *>')
+        self.itf_bind('o_fifo_in_req', itf, signature='wire<fifo_reqrsp_t *>')
+    
+    def i_FIFOin(self) -> gvsoc.systree.SlaveItf:
+        return gvsoc.systree.SlaveItf(self, 'i_fifo_in_resp', signature='wire<fifo_reqrsp_t *>')
+    
+    def i_FIFOout(self) -> gvsoc.systree.SlaveItf:
+        return gvsoc.systree.SlaveItf(self, 'i_fifo_out_resp', signature='wire<fifo_reqrsp_t *>')

@@ -24,6 +24,7 @@
 #include "be/idma_be.hpp"
 #include "be/idma_be_axi.hpp"
 #include "be/idma_be_tcdm.hpp"
+#include "be/idma_be_fifo.hpp"
 
 
 
@@ -49,6 +50,8 @@ private:
     IDmaBeTcdm be_tcdm_read;
     IDmaBeTcdm be_tcdm_write;
     IDmaBe be;
+    IDmaBeFifo fifo_out_be;
+    IDmaBeFifo fifo_in_be;
 };
 
 
@@ -59,8 +62,10 @@ SnitchDma::SnitchDma(vp::ComponentConf &config)
     me(this, &this->fe, &this->be),
     be_axi_read(this, "axi_read", &this->be), be_axi_write(this, "axi_write", &this->be),
     be_tcdm_read(this, "tcdm_read", &this->be), be_tcdm_write(this, "tcdm_write", &this->be),
+    fifo_out_be(this, "o_fifo_out_req", "i_fifo_out_resp", &this->be),
+    fifo_in_be(this, "o_fifo_in_req", "i_fifo_in_resp", &this->be),
     be(this, &this->me, &this->be_tcdm_read, &this->be_tcdm_write,
-        &this->be_axi_read, &this->be_axi_write)
+        &this->be_axi_read, &this->be_axi_write, &this->fifo_out_be, &this->fifo_in_be)
 {
 }
 

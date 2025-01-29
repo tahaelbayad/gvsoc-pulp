@@ -32,6 +32,8 @@ from pulp.snitch.sequencer import Sequencer
 from pulp.spatz.cluster_registers import Cluster_registers
 from elftools.elf.elffile import *
 import gvsoc.runner as gvsoc
+from pulp.redmule.redmule import Redmule
+from pulp.snitch.mesh_FIFOs import mesh_FIFOs
 
 import math
 
@@ -52,7 +54,7 @@ class Soc(st.Component):
         if Xfrep:
             fpu_sequencers = []
 
-        parser.add_argument("--isa", dest="isa", type=str, default="rv32imfdvca",
+        parser.add_argument("--isa", dest="isa", type=str, default="rv32imfvca",
             help="RISCV-V ISA string (default: %(default)s)")
 
         [args, __] = parser.parse_known_args()
@@ -61,6 +63,19 @@ class Soc(st.Component):
         if parser is not None:
             [args, otherArgs] = parser.parse_known_args()
             binary = args.binary
+
+        # Redmule
+        nb_banks_per_superbank = 8
+        nb_superbanks = 4
+        nb_l1_banks = nb_banks_per_superbank * nb_superbanks
+        redmule = Redmule( self, 'redmule',
+                    redmule_id          = 0,
+                    tcdm_bank_width     = 4,
+                    tcdm_bank_number    = nb_l1_banks,
+                    elem_size           = 2,
+                    ce_height           = 16,
+                    ce_width            = 4,
+                    ce_pipe             = 3     )
 
         # Memory Components
         # rom = memory.Memory(self, 'rom', size=0x10000, width_log2=3, stim_file=self.get_file_path('pulp/chips/spatz/rom.bin'))
@@ -86,9 +101,9 @@ class Soc(st.Component):
 
         # Core Complex
         for core_id in range(0, nb_cores):
-            int_cores.append(iss.Snitch(self, f'pe{core_id}', isa='rv32imfdvca', fetch_enable=False,
+            int_cores.append(iss.Snitch(self, f'pe{core_id}', isa='rv32imfvca', fetch_enable=False,
                                         boot_addr=0x0000_1000, core_id=core_id))
-            fp_cores.append(iss.Snitch_fp_ss(self, f'fp_ss{core_id}', isa='rv32imfdvca', fetch_enable=False,
+            fp_cores.append(iss.Snitch_fp_ss(self, f'fp_ss{core_id}', isa='rv32imfvca', fetch_enable=False,
                                         boot_addr=0x0000_1000, core_id=core_id))
             if Xfrep:
                 fpu_sequencers.append(Sequencer(self, f'fpu_sequencer{core_id}', latency=0))
@@ -122,6 +137,12 @@ class Soc(st.Component):
 
         icache.o_REFILL( dma_ico.i_INPUT() )
 
+        # adding redmule to the interconnect address map
+        ico.add_mapping( 'redmule', base=0x10040000, remove_offset=0x10040000, size=0x00000400  )
+        # ico port 'redmule' -> redmule input port 'input'
+        self.bind( ico, 'redmule', redmule, 'input' )
+        # redmule tcdm port 'tcdm' -> l1 port 'redmule_in'
+        self.bind( redmule, 'tcdm', l1, 'redmule_in' )
 
         # RISCV bus watchpoint
         tohost_addr = 0
@@ -159,6 +180,10 @@ class Soc(st.Component):
         int_cores[nb_cores-1].o_OFFLOAD(idma.i_OFFLOAD())
         idma.o_OFFLOAD_GRANT(int_cores[nb_cores-1].i_OFFLOAD_GRANT())
 
+        meshFIFOs = mesh_FIFOs(self, 'meshFIFOs')
+        idma.o_FIFO(meshFIFOs.i_DMA())
+        meshFIFOs.o_FIFOout(idma.i_FIFOout())
+        meshFIFOs.o_FIFOin(idma.i_FIFOin())
 
         # Core Interconnections
         for core_id in range(0, nb_cores):
