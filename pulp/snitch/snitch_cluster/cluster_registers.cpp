@@ -56,6 +56,9 @@ private:
     vp::WireMaster<bool> barrier_ack_itf;
 
     std::vector<vp::WireMaster<bool>> external_irq_itf;
+
+    // temporary
+    uint8_t hwpe_busy;
 };
 
 ClusterRegisters::ClusterRegisters(vp::ComponentConf &config)
@@ -98,8 +101,15 @@ vp::IoReqStatus ClusterRegisters::req(vp::Block *__this, vp::IoReq *req)
     uint8_t *data = req->get_data();
 
     _this->trace.msg("Received IO req (offset: 0x%llx, size: 0x%llx, is_write: %d)\n", offset, size, is_write);
-
-    _this->regmap.access(offset, size, data, is_write);
+    
+    // temporary
+    if(offset == 0x1a8 && size == 0x4){
+        if(!is_write)
+            *data = _this->hwpe_busy;
+        else
+            req->set_data(&_this->hwpe_busy);
+    } else 
+        _this->regmap.access(offset, size, data, is_write);
 
     return vp::IO_REQ_OK;
 }
